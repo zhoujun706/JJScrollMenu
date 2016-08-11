@@ -58,3 +58,9 @@ fastlane/screenshots
 # https://github.com/johnno1962/injectionforxcode
 
 iOSInjectionProject/
+.idea/codeStyleSettings.xml
+.idea/JJScrollMenu.iml
+.idea/misc.xml
+.idea/modules.xml
+.idea/workspace.xml
+.idea/xcode.xml

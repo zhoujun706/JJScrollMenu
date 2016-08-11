@@ -8,10 +8,12 @@
 
 #import "JJScrollMenu.h"
 #import "JJMenuItemCell.h"
+#import "JJContentItemCell.h"
 
 int const kMenuHeight = 40;
 int const kLineHeight = 3;
 NSString *const kMenuItemCellIdentifier = @"JJMenuItemCell";
+NSString *const kContentItemCellIdentifier = @"JJContentItemCell";
 
 
 @interface JJScrollMenu () <UICollectionViewDataSource, UICollectionViewDelegate, UICollectionViewDelegateFlowLayout>
@@ -63,6 +65,7 @@ NSString *const kMenuItemCellIdentifier = @"JJMenuItemCell";
      * 初始化默认值
      */
     _menuTitles = [NSArray array];
+    _contentControllers = [NSArray array];
     _currentIndex = 0;
     _menuBackgroundColor = [UIColor whiteColor];
     _lineColor = [UIColor blueColor];
@@ -113,18 +116,19 @@ NSString *const kMenuItemCellIdentifier = @"JJMenuItemCell";
      * 内容
      */
     UICollectionViewFlowLayout *contentLayout = [[UICollectionViewFlowLayout alloc] init];
-    menuLayout.minimumInteritemSpacing = 0;
-    menuLayout.minimumLineSpacing = 0;
-    menuLayout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
+    contentLayout.minimumInteritemSpacing = 0;
+    contentLayout.minimumLineSpacing = 0;
+    contentLayout.scrollDirection = UICollectionViewScrollDirectionHorizontal;
 
     _contentCollectionView = [[UICollectionView alloc] initWithFrame:CGRectZero collectionViewLayout:contentLayout];
     _contentCollectionView.translatesAutoresizingMaskIntoConstraints = NO;
     _contentCollectionView.backgroundColor = [UIColor redColor];
     _contentCollectionView.showsHorizontalScrollIndicator = NO;
     _contentCollectionView.showsVerticalScrollIndicator = NO;
+    _contentCollectionView.pagingEnabled = YES;
     _contentCollectionView.delegate = self;
     _contentCollectionView.dataSource = self;
-    [_contentCollectionView registerClass:[JJMenuItemCell class] forCellWithReuseIdentifier:kMenuItemCellIdentifier];
+    [_contentCollectionView registerClass:[JJContentItemCell class] forCellWithReuseIdentifier:kContentItemCellIdentifier];
     [self addSubview:_contentCollectionView];
 
     [self addConstraints:
@@ -149,11 +153,11 @@ NSString *const kMenuItemCellIdentifier = @"JJMenuItemCell";
         CGSize size = [title sizeWithAttributes:@{NSFontAttributeName : [UIFont systemFontOfSize:_selectedFontSize]}];
         size = CGSizeMake(size.width + _minMenuItemSpace, kMenuHeight);
         return size;
+    } else if ([collectionView isEqual:_contentCollectionView]) {
+        return collectionView.bounds.size;
     }
     return CGSizeMake(0, 0);
 }
-
-
 
 
 
@@ -179,6 +183,14 @@ NSString *const kMenuItemCellIdentifier = @"JJMenuItemCell";
         }
 
         return cell;
+    } else if ([collectionView isEqual:_contentCollectionView]) {
+        JJContentItemCell *cell =
+                [collectionView dequeueReusableCellWithReuseIdentifier:kContentItemCellIdentifier forIndexPath:indexPath];
+        UIViewController *viewController = _contentControllers[indexPath.item];
+        [self.viewController addChildViewController:viewController];
+        cell.contentItemView = viewController.view;
+        [viewController didMoveToParentViewController:self.viewController];
+        return cell;
     }
     return nil;
 }
@@ -191,7 +203,19 @@ NSString *const kMenuItemCellIdentifier = @"JJMenuItemCell";
 
 #pragma mark - Delegate
 - (void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath {
-    [self selectItemAtIndex:indexPath.item];
+    if ([collectionView isEqual:_menuCollectionView]) {
+        [self selectItemAtIndex:indexPath.item];
+    }
+}
+
+
+
+#pragma mark - ScrollViewDelegate
+- (void)scrollViewDidEndDecelerating:(UIScrollView *)scrollView {
+    if ([scrollView isEqual:_contentCollectionView]) {
+        int currentPage = (int) (scrollView.contentOffset.x / scrollView.bounds.size.width);
+        [self selectItemAtIndex:currentPage];
+    }
 }
 
 
@@ -219,6 +243,7 @@ NSString *const kMenuItemCellIdentifier = @"JJMenuItemCell";
     [_menuCollectionView selectItemAtIndexPath:indexPath
                                       animated:animated
                                 scrollPosition:UICollectionViewScrollPositionCenteredHorizontally];
+    [_contentCollectionView scrollToItemAtIndexPath:indexPath atScrollPosition:UICollectionViewScrollPositionNone animated:YES];
     [self resizeLineViewWithIndexPath:indexPath animated:animated];
 }
 
@@ -261,6 +286,25 @@ NSString *const kMenuItemCellIdentifier = @"JJMenuItemCell";
     if ((totalWidth + _minMenuItemSpace * _menuTitles.count) < screenWidth) {
         _minMenuItemSpace = (screenWidth - totalWidth) / _menuTitles.count;
     }
+    [_menuCollectionView reloadData];
+}
+
+
+- (void)setContentControllers:(NSArray *)contentControllers {
+    _contentControllers = contentControllers;
+
+    [_contentCollectionView reloadData];
+}
+
+
+- (UIViewController*)viewController {
+    for (UIView* next = [self superview]; next; next = next.superview) {
+        UIResponder* nextResponder = [next nextResponder];
+        if ([nextResponder isKindOfClass:[UIViewController class]]) {
+            return (UIViewController*)nextResponder;
+        }
+    }
+    return nil;
 }
 
 

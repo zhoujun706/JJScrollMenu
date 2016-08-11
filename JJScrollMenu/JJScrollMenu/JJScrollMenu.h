@@ -32,5 +32,9 @@
 
 
 
+@property (nonatomic, strong) NSArray *contentControllers;
+
+
+
 
 @end

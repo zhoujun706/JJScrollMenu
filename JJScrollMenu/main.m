@@ -1,16 +1,19 @@
 //
 //  main.m
-//  market
+//  JJScrollMenu
 //
-//  Created by 邹俊 on 2016/8/3.
-//  Copyright © 2016年 尚娱网络. All rights reserved.
+//  Created by Joon on 16/8/11.
+//  Copyright (c) 2016 ___Joon___. All rights reserved.
 //
+
 
 #import <UIKit/UIKit.h>
 #import "AppDelegate.h"
+
 
 int main(int argc, char * argv[]) {
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
     }
+
 }
